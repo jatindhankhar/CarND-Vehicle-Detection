@@ -2,7 +2,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 from skimage.feature import hog
-
+from scipy.ndimage.measurements import label
 
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, vis=False, feature_vec=True):
 
@@ -131,6 +131,7 @@ def find_cars(img,ystart,ystop,scale,svc,X_scaler,orient,pix_per_cell,cell_per_b
     # Normalize the image
     img = img.astype(np.float32)/255
     img_tosearch = img[ystart:ystop,:,:]
+    window_list = []
     ctrans_tosearch = cv2.cvtColor(img_tosearch,cv2.COLOR_RGB2YCrCb)
 
     if scale != 1:
@@ -180,15 +181,39 @@ def find_cars(img,ystart,ystop,scale,svc,X_scaler,orient,pix_per_cell,cell_per_b
             hist_features = color_hist(subimg,nbins=hist_bins)
 
             # Scale features and make a prediction
-            test_features = X_scaler.transform(np.hstack((spatial_features,hist_features,hog_features)).reshape(1,-1))
             test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
             test_prediction = svc.predict(test_features)
-            print("Test prediction", test_prediction)
             if test_prediction == 1:
                 count = count + 1
                 xbox_left = np.int(xleft*scale)
                 ytop_draw = np.int(ytop*scale)
                 win_draw = np.int(window*scale)
+                # Draw as well maintain list of detected windows
                 cv2.rectangle(draw_img,(xbox_left,ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,255,0),6)
-    print("Total cars found :",count)
-    return draw_img
+                window_list.append(((xbox_left, ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart)))
+    return window_list,draw_img
+
+
+def add_heat(heatmap,bbox_list):
+    for box in bbox_list:
+        heatmap[box[0][1]:box[1][1],box[0][0]:box[1][0]] += 1
+    return heatmap
+
+
+def apply_threshold(heatmap,threshold):
+    heatmap[heatmap <= threshold] = 0
+    return heatmap
+
+def draw_labeled_bboxes(img,labels):
+    for car_number in range(1,labels[1]+1):
+
+        nonzero = (labels[0] == car_number).nonzero()
+
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+
+        bbox = ((np.min(nonzerox),np.min(nonzeroy)),(np.max(nonzerox),np.max(nonzeroy)))
+
+        cv2.rectangle(img,bbox[0],bbox[1],(0,0,255),6)
+
+    return img
