@@ -127,6 +127,7 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
 
 def find_cars(img,ystart,ystop,scale,svc,X_scaler,orient,pix_per_cell,cell_per_block,spatial_size,hist_bins):
     draw_img = np.copy(img)
+    count = 0
     # Normalize the image
     img = img.astype(np.float32)/255
     img_tosearch = img[ystart:ystop,:,:]
@@ -182,10 +183,12 @@ def find_cars(img,ystart,ystop,scale,svc,X_scaler,orient,pix_per_cell,cell_per_b
             test_features = X_scaler.transform(np.hstack((spatial_features,hist_features,hog_features)).reshape(1,-1))
             test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
             test_prediction = svc.predict(test_features)
-
+            print("Test prediction", test_prediction)
             if test_prediction == 1:
+                count = count + 1
                 xbox_left = np.int(xleft*scale)
                 ytop_draw = np.int(ytop*scale)
                 win_draw = np.int(window*scale)
                 cv2.rectangle(draw_img,(xbox_left,ytop_draw+ystart),(xbox_left+win_draw,ytop_draw+win_draw+ystart),(0,255,0),6)
+    print("Total cars found :",count)
     return draw_img
