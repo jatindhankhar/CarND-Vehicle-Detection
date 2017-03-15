@@ -246,8 +246,6 @@ def spot_cars(img, y_start_stops, scales, svc, X_scaler, spatial_size, hist_bins
     for y_start_stop, scale in zip(y_start_stops, scales):
 
         img_tosearch = img[y_start_stop[0]:y_start_stop[1], :, :]
-
-        #ctrans_tosearch = convert_color(img_tosearch, color_space=color_space)
         ctrans_tosearch = cv2.cvtColor(img_tosearch, cv2.COLOR_RGB2YCrCb)
         if scale != 1:
             imshape = ctrans_tosearch.shape
